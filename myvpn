@@ -9,48 +9,39 @@ function announce() {
 }
 
 function myvpn_setup() {
-    if [ ! -f "./.myvpn-create-server.sh" -o "$REMOTE_HOSTNAME" = "" -o "$REMOTE_USER" = "" -o "$VPN_SERVER_NAME" = "" -o ! -d "$CLIENT_CONFIG_LOCATION" ]; then
+    if [ ! -f "./.myvpn-create-server.sh" -o "$REMOTE_HOSTNAME" = "" -o "$REMOTE_USER" = "" -o "$VPN_SERVER_NAME" = "" -o ! -d "$LOCAL_CONFIG_LOCATION" ]; then
         echo "Invalid setup" 1>&2
         exit
     fi
 
     announce "Copy OpenVPN server creation script to remote machine '$REMOTE_HOSTNAME'"
-    ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir $SERVER_CONFIG_LOCATION"
-    scp ./.myvpn-create-server.sh $REMOTE_USER@$REMOTE_HOSTNAME:$SERVER_CONFIG_LOCATION
-    if [ $? -ne 0 ]; then
-       exit
-    fi
+    ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir $REMOTE_CONFIG_LOCATION"
+    scp ./.myvpn-create-server.sh $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_LOCATION
 
     announce "Execute OpenVPN server creation script at remote machine"
-    ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $SERVER_CONFIG_LOCATION; ./.myvpn-create-server.sh"
-    if [ $? -ne 0 ]; then
-       exit
-    fi
+    ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $REMOTE_CONFIG_LOCATION; ./.myvpn-create-server.sh"
 
-    announce "Download key from remote machine to local machine (at location $CLIENT_CONFIG_LOCATION)"
-    scp $REMOTE_USER@$REMOTE_HOSTNAME:$SERVER_CONFIG_LOCATION/static.key $CLIENT_CONFIG_LOCATION/$VPN_SERVER_NAME.key
-    if [ $? -ne 0 ]; then
-       exit
-    fi
+    announce "Download key from remote machine to local machine (at location $LOCAL_CONFIG_LOCATION)"
+    scp $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_LOCATION/static.key $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.key
 
     announce "Create client configuration file with name '$VPN_SERVER_NAME.conf'"
     echo "remote $REMOTE_HOSTNAME
     dev tun
     ifconfig 10.8.0.2 10.8.0.1
-    secret $CLIENT_CONFIG_LOCATION/$VPN_SERVER_NAME.key
+    secret $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.key
     redirect-gateway def1
     comp-lzo
     keepalive 10 60
     ping-timer-rem
     persist-tun
-    persist-key" > $CLIENT_CONFIG_LOCATION/$VPN_SERVER_NAME.conf
+    persist-key" > $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.conf
 
     announce "Remove shell script at remote"
-    ssh $REMOTE_USER@$REMOTE_HOSTNAME "rm $SERVER_CONFIG_LOCATION/.myvpn-create-server.sh"
+    ssh $REMOTE_USER@$REMOTE_HOSTNAME "rm $REMOTE_CONFIG_LOCATION/.myvpn-create-server.sh"
 }
 
 case "$1" in
-    server-start) ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $SERVER_CONFIG_LOCATION; sudo openvpn ./server.conf";;
-    setup) myvpn_setup;;
+    server-start) ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $REMOTE_CONFIG_LOCATION; sudo openvpn --daemon --config server.conf";;
+    setup) set -e; myvpn_setup;;
     *) echo "Invalid option" 1>&2 ;;
 esac

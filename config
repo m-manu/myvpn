@@ -1,5 +1,12 @@
-REMOTE_HOSTNAME=107.170.197.144
+#!/bin/bash
+
+# VPN Server settings
+REMOTE_HOSTNAME=128.199.95.172
 REMOTE_USER=root
+REMOTE_CONFIG_LOCATION=/root/myvpn
+
+# VPN Client settings
+LOCAL_CONFIG_LOCATION=/Users/manu.manjunath/myvpn
+
+# Common settings
 VPN_SERVER_NAME=gargantua
-SERVER_CONFIG_LOCATION=/root/myvpn
-CLIENT_CONFIG_LOCATION=/Users/manu.manjunath/myvpn
