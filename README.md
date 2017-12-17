@@ -7,10 +7,10 @@ A crude script to setup and start your own OpenVPN server
 
 ### Server setup
 * Fill file `parameters` with appropriate values
- * **Note**: All the shell variables specified below are references to the shell variables you've specified in `parameters` file 
-* Run `./myvpn-setup`
- * This will install and setup [OpenVPN](https://openvpn.net/) server in remote machine.
- * Also, this will create a `$VPN_SERVER_NAME.conf` at `$CLIENT_CONFIG_LOCATION` you've specified in your [parameters](./parameters) file
+  * **Note**: All the shell variables specified below are references to the shell variables you've specified in `parameters` file 
+* Run `myvpn-setup` script with path to parameters file as an argument. e.g. `./myvpn-setup parameters`
+  * This will install and setup [OpenVPN](https://openvpn.net/) server in remote machine.
+  * Also, this will create a `$VPN_SERVER_NAME.conf` at `$CLIENT_CONFIG_LOCATION` you've specified in your [parameters](./parameters) file
 
 ### Client setup
 * Install a client for OpenVPN (such as [Tunnelblick](https://tunnelblick.net/))
