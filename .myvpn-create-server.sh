@@ -8,10 +8,13 @@ function announce() {
     echo "***************************************"
 }
 
-announce "Install OpenVPN"
+announce "Updating APT repos"
+sudo apt-get update
+
+announce "Installing OpenVPN"
 sudo apt-get install -y openvpn
 
-announce "Now generate a static key for a simple private one to one VPN"
+announce "Generating a static key for a simple private one to one VPN"
 openvpn --genkey --secret ./static.key
 chmod 600 ./static.key
 

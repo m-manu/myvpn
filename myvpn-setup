@@ -35,7 +35,7 @@ fi
 set -e
 
 announce "Copy OpenVPN server creation script to remote machine '$REMOTE_HOSTNAME'"
-ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir $REMOTE_CONFIG_LOCATION"
+ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir -p $REMOTE_CONFIG_LOCATION"
 scp ./.myvpn-create-server.sh $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_LOCATION
 
 announce "Execute OpenVPN server creation script at remote machine"
