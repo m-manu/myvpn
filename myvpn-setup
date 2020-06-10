@@ -7,60 +7,61 @@ function announce() {
 }
 
 function err() {
-    echo -e $* 1>&2
+    echo -e "Error:" $* 1>&2
 }
 
 if [ ! -f "./.myvpn-create-server.sh" ]; then
     err "Invalid setup"
     exit 11
-elif [ $# -ne 1 ]; then
-    err "Too few/many arguments.\nUsage:\n\t./myvpn <parameters-file>"
+elif [ $# -ne 0 ]; then
+    err "This does not accept arguments!\nUsage:\n\t<parameters & values> ./myvpn-setup"
     exit 21
-fi
-
-PARAMETERS_FILE="$1"
-
-if [ ! -f "$PARAMETERS_FILE" ]; then
-    err "Parameters file \"$PARAMETERS_FILE\" does not exist or is not readable"
+elif [ "$REMOTE_HOSTNAME" = "" ]; then
+    err "Remote hostname is not specified. Set variable 'REMOTE_HOSTNAME'."
     exit 31
-fi
-
-source "$PARAMETERS_FILE"
-
-if [ "$REMOTE_HOSTNAME" = "" -o "$REMOTE_USER" = "" -o "$VPN_SERVER_NAME" = "" -o ! -d "$LOCAL_CONFIG_LOCATION" ]; then
-    err "One or more parameters aren't set or specified incorrectly in \"$PARAMETERS_FILE\". Check and fix."
-    exit 41
+elif [ "$REMOTE_USER" = "" ]; then
+    err "Remote username is not specified. Set variable 'REMOTE_USER'."
+    exit 32
+elif [ "$REMOTE_CONFIG_DIR" = "" ]; then
+    err "Location of config directory in remote is not specified. Set variable 'REMOTE_CONFIG_DIR'."
+    exit 33
+elif [ "$LOCAL_CONFIG_DIR" = "" -o ! -d "$LOCAL_CONFIG_DIR" ]; then
+    err "Location of config directory in local is either not specified or doesn't exist. Set variable 'LOCAL_CONFIG_DIR' to a valid/writable directory path"
+    exit 34
+elif [ "$VPN_SERVER_NAME" = "" ]; then
+    err "Name for the VPN server is not specified. Set variable 'VPN_SERVER_NAME'."
+    exit 35
 fi
 
 set -e
 
-announce "Copy OpenVPN server creation script to remote machine '$REMOTE_HOSTNAME'"
-ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir -p $REMOTE_CONFIG_LOCATION"
-scp ./.myvpn-create-server.sh $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_LOCATION
+announce "Copying OpenVPN server creation script to remote machine '$REMOTE_HOSTNAME'"
+ssh $REMOTE_USER@$REMOTE_HOSTNAME "mkdir -p $REMOTE_CONFIG_DIR"
+scp ./.myvpn-create-server.sh $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_DIR
 
-announce "Execute OpenVPN server creation script at remote machine"
-ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $REMOTE_CONFIG_LOCATION; ./.myvpn-create-server.sh"
+announce "Executing OpenVPN server creation script at remote machine"
+ssh $REMOTE_USER@$REMOTE_HOSTNAME "cd $REMOTE_CONFIG_DIR; ./.myvpn-create-server.sh"
 
-announce "Download key from remote machine to local machine (at location $LOCAL_CONFIG_LOCATION)"
-scp $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_LOCATION/static.key $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.key
+announce "Downloading key from remote machine to local machine (at location $LOCAL_CONFIG_DIR)"
+scp $REMOTE_USER@$REMOTE_HOSTNAME:$REMOTE_CONFIG_DIR/static.key $LOCAL_CONFIG_DIR/$VPN_SERVER_NAME.key
 
-announce "Create client configuration file with name '$VPN_SERVER_NAME.conf'"
+announce "Creating client configuration file with name '$VPN_SERVER_NAME.conf'"
 echo "remote $REMOTE_HOSTNAME
 dev tun
 ifconfig 10.8.0.2 10.8.0.1
-secret $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.key
+secret $LOCAL_CONFIG_DIR/$VPN_SERVER_NAME.key
 redirect-gateway def1
 comp-lzo
 keepalive 10 60
 ping-timer-rem
 persist-tun
-persist-key" > $LOCAL_CONFIG_LOCATION/$VPN_SERVER_NAME.conf
+persist-key" > $LOCAL_CONFIG_DIR/$VPN_SERVER_NAME.conf
 
-announce "Remove shell script at remote"
-ssh $REMOTE_USER@$REMOTE_HOSTNAME "rm $REMOTE_CONFIG_LOCATION/.myvpn-create-server.sh"
+announce "Removing shell script at remote"
+ssh $REMOTE_USER@$REMOTE_HOSTNAME "rm $REMOTE_CONFIG_DIR/.myvpn-create-server.sh"
 
-announce "Create shell scripts at local (for starting and stopping VPN server at remote)"
-echo "ssh $REMOTE_USER@$REMOTE_HOSTNAME \"cd $REMOTE_CONFIG_LOCATION; sudo openvpn --daemon --config server.conf\"" > "$LOCAL_CONFIG_LOCATION/start-$VPN_SERVER_NAME.sh"
-chmod u+x "$LOCAL_CONFIG_LOCATION/start-$VPN_SERVER_NAME.sh"
-echo "ssh $REMOTE_USER@$REMOTE_HOSTNAME \"sudo pgrep openvpn | xargs sudo kill -9\"" > "$LOCAL_CONFIG_LOCATION/stop-$VPN_SERVER_NAME.sh"
-chmod u+x "$LOCAL_CONFIG_LOCATION/stop-$VPN_SERVER_NAME.sh"
+announce "Creating shell scripts at local (for starting and stopping VPN server at remote)"
+echo "ssh $REMOTE_USER@$REMOTE_HOSTNAME \"cd $REMOTE_CONFIG_DIR; sudo openvpn --daemon --config server.conf\"" > "$LOCAL_CONFIG_DIR/start-$VPN_SERVER_NAME.sh"
+chmod u+x "$LOCAL_CONFIG_DIR/start-$VPN_SERVER_NAME.sh"
+echo "ssh $REMOTE_USER@$REMOTE_HOSTNAME \"sudo pgrep openvpn | xargs sudo kill -9\"" > "$LOCAL_CONFIG_DIR/stop-$VPN_SERVER_NAME.sh"
+chmod u+x "$LOCAL_CONFIG_DIR/stop-$VPN_SERVER_NAME.sh"
